@@ -1,0 +1,7 @@
+.cache/
+temp_audio/
+*.db
+audyn.db
+.env
+__pycache__/
+*.pyc
