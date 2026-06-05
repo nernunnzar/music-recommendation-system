@@ -86,7 +86,7 @@ def _cargar_opciones_buscador():
     Genera y cachea la lista de opciones para el autocompletado del buscador.
     Cada opción tiene el formato 'Nombre de canción — Artista'.
     Devuelve también un dict de búsqueda rápida por esa cadena.
-    Solo carga las 5.000 canciones más populares para mejorar el rendimiento.
+    Solo carga las 80.000 canciones más populares para mejorar el rendimiento.
     """
     ruta = Path(__file__).resolve().parent / "data" / "dataset_procesado.csv"
     df   = pd.read_csv(
@@ -96,7 +96,7 @@ def _cargar_opciones_buscador():
     df = df.dropna(subset=["track_name", "artist_name"])
     df["track_name"]  = df["track_name"].astype(str)
     df["artist_name"] = df["artist_name"].astype(str)
-    df = df.sort_values("popularity", ascending=False).head(5000)
+    df = df.sort_values("popularity", ascending=False).head(80000)
 
     df["etiqueta"] = df["track_name"] + " — " + df["artist_name"]
     opciones       = df["etiqueta"].tolist()

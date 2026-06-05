@@ -57,7 +57,7 @@ def enriquecer_recomendaciones(recomendaciones: list[dict]) -> list[dict]:
 # Renderizado de recomendaciones
 def render_recomendaciones(recomendaciones: list[dict]) -> None:
     """
-    Renderiza las 5 canciones recomendadas en layout 3+2.
+    Renderiza las 5 canciones recomendadas en una única fila.
     Espera recibir las recomendaciones ya enriquecidas con
     cover_url y preview_url.
     """
@@ -67,20 +67,11 @@ def render_recomendaciones(recomendaciones: list[dict]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Fila 1: canciones 0, 1, 2
-    cols_fila1 = st.columns(3)
-    for i, col in enumerate(cols_fila1):
+    # Fila única: las 5 canciones en una sola fila
+    cols = st.columns(5)
+    for i, col in enumerate(cols):
         if i < len(recomendaciones):
             render_tarjeta(col, recomendaciones[i])
-
-    st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
-
-    # Fila 2: canciones 3, 4 centradas
-    _, col4, col5, _ = st.columns([0.5, 1, 1, 0.5])
-    if len(recomendaciones) > 3:
-        render_tarjeta(col4, recomendaciones[3])
-    if len(recomendaciones) > 4:
-        render_tarjeta(col5, recomendaciones[4])
 
 
 # Orquestador interno
