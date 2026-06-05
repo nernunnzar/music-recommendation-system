@@ -24,9 +24,8 @@ from backend.recommender import cargar_recursos
 from views.buscador      import render_buscador
 from views.historial     import render_historial
 
-# ---------------------------------------------------------------------------
-# Configuración de página (debe ser la primera llamada a Streamlit)
-# ---------------------------------------------------------------------------
+
+# Configuración de página
 st.set_page_config(
     page_title = "Audyn",
     page_icon  = "assets/logo.png",
@@ -40,9 +39,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------------------------
+
 # CSS externo
-# ---------------------------------------------------------------------------
 def _cargar_css() -> None:
     """Inyecta el archivo CSS externo en la aplicación."""
     ruta = Path(__file__).resolve().parent / "assets" / "style.css"
@@ -51,14 +49,12 @@ def _cargar_css() -> None:
 
 _cargar_css()
 
-# ---------------------------------------------------------------------------
+
 # Inicialización única de la base de datos
-# ---------------------------------------------------------------------------
 inicializar_db()
 
-# ---------------------------------------------------------------------------
+
 # Recursos en caché
-# ---------------------------------------------------------------------------
 @st.cache_resource
 def _cargar_modelo():
     """
@@ -109,9 +105,7 @@ def _cargar_opciones_buscador():
     return opciones, mapa_trackid
 
 
-# ---------------------------------------------------------------------------
 # Session state: valores por defecto
-# ---------------------------------------------------------------------------
 _DEFAULTS = {
     "pagina"             : "buscador",
     "resultado_historial": None,
@@ -123,9 +117,8 @@ for clave, valor in _DEFAULTS.items():
     if clave not in st.session_state:
         st.session_state[clave] = valor
 
-# ---------------------------------------------------------------------------
+
 # Sidebar
-# ---------------------------------------------------------------------------
 def _render_sidebar() -> None:
     """Renderiza el sidebar con logo y botones de navegación."""
     with st.sidebar:
@@ -166,9 +159,7 @@ def _render_sidebar() -> None:
                 st.rerun()
 
 
-# ---------------------------------------------------------------------------
 # Enrutador principal
-# ---------------------------------------------------------------------------
 _render_sidebar()
 
 if st.session_state["pagina"] == "buscador":
