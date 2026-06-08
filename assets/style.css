@@ -299,3 +299,25 @@ html, body, [class*="css"] {
 [data-testid="stSidebarNav"] {
     display: none;
 }
+
+
+/* Componentes — Perfil acústico (radar + barras de similitud) */
+.perfil-titulo {
+    font-size  : 1.1rem;
+    font-weight: 700;
+    color      : #0d1b2a;
+    margin-bottom: 1rem;
+}
+
+/* Forzar fondo blanco en los contenedores de Plotly dentro de Streamlit */
+[data-testid="stPlotlyChart"] {
+    background-color: #ffffff;
+    border-radius   : 14px;
+    padding         : 0.75rem;
+    box-shadow      : 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Eliminar scroll en iframes de Plotly fijando la altura */
+[data-testid="stPlotlyChart"] iframe {
+    height: 450px !important;
+}

@@ -8,3 +8,4 @@ pydub
 requests
 python-dotenv
 joblib
+plotly

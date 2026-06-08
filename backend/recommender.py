@@ -42,6 +42,7 @@ def recomendar(
     pca,
     catalogo_pca: np.ndarray,
     metadata,
+    catalogo_features: np.ndarray,
     track_id_entrada: str | None = None,
     k: int = 5,
 ) -> list[dict]:
@@ -55,14 +56,17 @@ def recomendar(
     pca : transformador PCA cargado con cargar_recursos().
     catalogo_pca : catálogo completo en el espacio reducido.
     metadata : DataFrame con los metadatos del catálogo.
+    catalogo_features : matriz completa de características sin reducir (174582, 24).
+                        Se usa para extraer el vector de cada recomendación y
+                        calcular el perfil acústico en la visualización.
     track_id_entrada : track_id de la canción de entrada para excluirla
                        de los resultados si pertenece al catálogo.
     k : número de recomendaciones a devolver (por defecto 5).
 
     Devuelve
     --------
-    Lista de k dicts con claves: track_id, track_name, artist_name.
-    Nota: cover_url y preview_url se enriquecen en app.py consultando iTunes,
+    Lista de k dicts con claves: track_id, track_name, artist_name, score, features.
+    Nota: cover_url y preview_url se enriquecen en buscador.py consultando iTunes,
     ya que no están almacenados en los metadatos del catálogo.
     """
     # 1. Proyectar el vector de entrada al espacio reducido por PCA
@@ -85,11 +89,13 @@ def recomendar(
             continue
 
         resultados.append({
-            "track_id": fila["track_id"],
-            "track_name": fila["track_name"],
+            "track_id"   : fila["track_id"],
+            "track_name" : fila["track_name"],
             "artist_name": fila["artist_name"],
-            "cover_url": None,   # se enriquece en app.py
-            "preview_url": None,   # se enriquece en app.py
+            "cover_url"  : None,                                  # se enriquece en buscador.py
+            "preview_url": None,                                  # se enriquece en buscador.py
+            "score"      : round(float(1 - distancias[idx]), 4), # similitud coseno [0, 1]
+            "features"   : catalogo_features[idx].tolist(),      # vector 24d para el radar
         })
 
         if len(resultados) == k:

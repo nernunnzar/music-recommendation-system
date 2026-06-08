@@ -22,7 +22,7 @@ from backend.oov_processor import (
     obtener_metadatos_spotify,
     obtener_preview_url,
 )
-from views.components import render_cancion_entrada, render_tarjeta
+from views.components import render_cancion_entrada, render_tarjeta, render_perfil_acustico
 
 
 # Enriquecimiento de recomendaciones
@@ -82,6 +82,7 @@ def _procesar_y_guardar(
     pca,
     catalogo_pca: np.ndarray,
     df_metadata: pd.DataFrame,
+    catalogo_features: np.ndarray,
 ) -> None:
     """
     Función auxiliar que:
@@ -111,6 +112,7 @@ def _procesar_y_guardar(
                 pca,
                 catalogo_pca,
                 df_metadata,
+                catalogo_features,
                 track_id_entrada=metadatos["track_id"],
             )
 
@@ -120,15 +122,16 @@ def _procesar_y_guardar(
         # 4. Persistir en SQLite solo si es consulta nueva
         if not consulta_ya_existe(metadatos["track_id"]):
             guardar_consulta(
-                track_id      = metadatos["track_id"],
-                track_name    = metadatos["track_name"],
-                artist_name   = metadatos["artist_name"],
-                cover_url     = metadatos.get("cover_url"),
-                es_oov        = metadatos.get("es_oov", False),
+                track_id        = metadatos["track_id"],
+                track_name      = metadatos["track_name"],
+                artist_name     = metadatos["artist_name"],
+                cover_url       = metadatos.get("cover_url"),
+                es_oov          = metadatos.get("es_oov", False),
                 recomendaciones = recomendaciones,
             )
 
-    # 5. Actualizar estado y relanzar
+    # 5. Guardar vector de entrada y actualizar estado
+    st.session_state["vector_entrada"]   = vector.flatten().tolist()
     st.session_state["recomendaciones"]  = recomendaciones
     st.session_state["limpiar_buscador"] = True
     st.rerun()
@@ -228,10 +231,9 @@ def render_buscador(
 
         _procesar_y_guardar(
             metadatos, vector, consulta_previa,
-            pca, catalogo_pca, df_metadata,
+            pca, catalogo_pca, df_metadata, catalogo_features,
         )
-
-    # Lógica: búsqueda OOV (Spotify + iTunes + DSP)-
+        
     if buscar and texto_oov and not seleccion_catalogo:
         with st.spinner("Analizando canción, esto puede tardar unos segundos..."):
             metadatos, vector = procesar_cancion_nueva(texto_oov)
@@ -248,7 +250,7 @@ def render_buscador(
 
         _procesar_y_guardar(
             metadatos, vector, consulta_previa,
-            pca, catalogo_pca, df_metadata,
+            pca, catalogo_pca, df_metadata, catalogo_features,
         )
 
     # Mostrar resultados
@@ -258,3 +260,8 @@ def render_buscador(
     if st.session_state["recomendaciones"]:
         st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
         render_recomendaciones(st.session_state["recomendaciones"])
+        render_perfil_acustico(
+            st.session_state["cancion_entrada"],
+            st.session_state["recomendaciones"],
+            st.session_state["vector_entrada"],
+        )
