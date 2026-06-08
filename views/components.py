@@ -14,7 +14,12 @@ import plotly.graph_objects as go
 
 def render_cancion_entrada(metadatos: dict) -> None:
     """Renderiza la tarjeta de la canción de entrada."""
-    cover = metadatos.get("cover_url") or "https://via.placeholder.com/80"
+    cover   = metadatos.get("cover_url") or "https://via.placeholder.com/80"
+    es_oov  = metadatos.get("es_oov", False)
+
+    badge_text  = "Spotify / OOV" if es_oov else "Catálogo"
+    badge_color = "#f97316"        if es_oov else "#3b6ef8"
+
     st.markdown(f"""
         <div class='entrada-card'>
             <img src='{cover}' alt='caratula'/>
@@ -22,6 +27,18 @@ def render_cancion_entrada(metadatos: dict) -> None:
                 <div class='entrada-label'>Canción seleccionada</div>
                 <div class='entrada-title'>{metadatos['track_name']}</div>
                 <div class='entrada-artist'>{metadatos['artist_name']}</div>
+                <div style='margin-top:0.5rem;'>
+                    <span style='
+                        background-color: {badge_color};
+                        color: #ffffff;
+                        font-size: 0.7rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        padding: 0.2rem 0.6rem;
+                        border-radius: 20px;
+                    '>{badge_text}</span>
+                </div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -67,6 +84,15 @@ _METRICAS_RADAR = {
     "Loudness"     : 6,
     "Valence"      : 9,
 }
+
+# Longitud máxima de nombres en gráficos (el hover siempre muestra el completo)
+_MAX_CHARS_RADAR  = 40
+_MAX_CHARS_BARRAS = 28
+
+def _truncar(texto: str, max_chars: int) -> str:
+    """Trunca el texto a max_chars caracteres añadiendo '…' si es necesario."""
+    return texto if len(texto) <= max_chars else texto[:max_chars].rstrip() + "…"
+
 
 # Paleta: entrada en azul corporativo, recomendaciones en colores pastel
 _COLOR_ENTRADA = "#3b6ef8"
@@ -133,14 +159,15 @@ def render_perfil_acustico(
         fig_radar = go.Figure()
 
         for i, rec in enumerate(recs_con_features):
-            vals_rec = [float(rec["features"][j]) for j in indices]
-            nombre   = rec["track_name"]
+            vals_rec     = [float(rec["features"][j]) for j in indices]
+            nombre       = rec["track_name"]
+            nombre_corto = _truncar(nombre, _MAX_CHARS_RADAR)
 
             fig_radar.add_trace(go.Scatterpolar(
                 r         = vals_rec + [vals_rec[0]],
                 theta     = etiquetas + [etiquetas[0]],
                 fill      = "toself",
-                name      = nombre,
+                name      = nombre_corto,
                 line      = dict(color=_COLORES_RECS_LINE[i], width=1.5),
                 fillcolor = _COLORES_RECS[i],
                 hovertemplate = (
@@ -154,7 +181,7 @@ def render_perfil_acustico(
             r         = vals_entrada + [vals_entrada[0]],
             theta     = etiquetas + [etiquetas[0]],
             fill      = "none",
-            name      = cancion_entrada["track_name"],
+            name      = _truncar(cancion_entrada["track_name"], _MAX_CHARS_RADAR),
             line      = dict(color=_COLOR_ENTRADA, width=3),
             hovertemplate = (
                 f"<b>{cancion_entrada['track_name']}</b><br>"
@@ -206,20 +233,22 @@ def render_perfil_acustico(
         )
 
         nombres        = [r["track_name"] for r in recs_con_features]
+        nombres_cortos = [_truncar(n, _MAX_CHARS_BARRAS) for n in nombres]
         scores         = [round(r.get("score", 0), 4) for r in recs_con_features]
         colores_barras = [c.replace("0.75", "0.90") for c in _COLORES_RECS]
 
         fig_barras = go.Figure()
         fig_barras.add_trace(go.Bar(
             x            = scores,
-            y            = nombres,
+            y            = nombres_cortos,
             orientation  = "h",
             width        = 0.25,
             marker       = dict(color=colores_barras[:len(nombres)]),
             text         = [f"{s:.5f}" for s in scores],
             textposition = "outside",
             textfont     = dict(size=14, color="#0d1b2a"),
-            hovertemplate= "<b>%{y}</b><br>Similitud: %{x:.5f}<extra></extra>",
+            customdata   = nombres,
+            hovertemplate= "<b>%{customdata}</b><br>Similitud: %{x:.5f}<extra></extra>",
         ))
 
         # Rango dinámico: zoom sobre la zona donde están los scores

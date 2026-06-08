@@ -31,14 +31,15 @@ def inicializar_db() -> None:
     with _conectar() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS consultas (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                fecha         TEXT    NOT NULL,
-                track_id      TEXT    NOT NULL,
-                track_name    TEXT    NOT NULL,
-                artist_name   TEXT    NOT NULL,
-                cover_url     TEXT,
-                es_oov        INTEGER NOT NULL DEFAULT 0,
-                recomendaciones TEXT  NOT NULL
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha           TEXT    NOT NULL,
+                track_id        TEXT    NOT NULL,
+                track_name      TEXT    NOT NULL,
+                artist_name     TEXT    NOT NULL,
+                cover_url       TEXT,
+                es_oov          INTEGER NOT NULL DEFAULT 0,
+                recomendaciones TEXT    NOT NULL,
+                vector_entrada  TEXT
             )
         """)
 
@@ -50,6 +51,7 @@ def guardar_consulta(
     cover_url: str | None,
     es_oov: bool,
     recomendaciones: list[dict],
+    vector_entrada: list | None = None,
 ) -> None:
     """
     Inserta una nueva consulta en la base de datos.
@@ -63,19 +65,23 @@ def guardar_consulta(
     es_oov : True si la canción no estaba en el catálogo local.
     recomendaciones : lista de hasta 5 dicts con claves
                       {track_name, artist_name, cover_url, preview_url}.
+    vector_entrada : vector 24d de la canción de entrada (lista de floats),
+                     necesario para renderizar el perfil acústico desde el historial.
     """
-    fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+    fecha                = datetime.now().strftime("%d/%m/%Y %H:%M")
     recomendaciones_json = json.dumps(recomendaciones, ensure_ascii=False)
+    vector_json          = json.dumps(vector_entrada, ensure_ascii=False) if vector_entrada is not None else None
 
     with _conectar() as conn:
         conn.execute(
             """
             INSERT INTO consultas
-                (fecha, track_id, track_name, artist_name, cover_url, es_oov, recomendaciones)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (fecha, track_id, track_name, artist_name, cover_url, es_oov,
+                 recomendaciones, vector_entrada)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (fecha, track_id, track_name, artist_name, cover_url,
-             int(es_oov), recomendaciones_json),
+             int(es_oov), recomendaciones_json, vector_json),
         )
 
 
@@ -137,9 +143,10 @@ def obtener_consulta_por_id(consulta_id: int) -> dict | None:
 def _fila_a_dict(row: sqlite3.Row) -> dict:
     """
     Convierte una fila de SQLite en un diccionario Python,
-    deserializando el campo JSON de recomendaciones.
+    deserializando los campos JSON de recomendaciones y vector_entrada.
     """
     data = dict(row)
     data["recomendaciones"] = json.loads(data["recomendaciones"])
-    data["es_oov"] = bool(data["es_oov"])
+    data["es_oov"]          = bool(data["es_oov"])
+    data["vector_entrada"]  = json.loads(data["vector_entrada"]) if data.get("vector_entrada") else None
     return data

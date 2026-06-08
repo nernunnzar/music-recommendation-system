@@ -105,6 +105,7 @@ def _procesar_y_guardar(
     # 2. Recomendaciones: caché BD o cálculo nuevo
     if consulta_previa:
         recomendaciones = consulta_previa["recomendaciones"]
+        vector_flat     = consulta_previa.get("vector_entrada")
     else:
         with st.spinner("Calculando recomendaciones..."):
             recomendaciones = recomendar(
@@ -118,6 +119,7 @@ def _procesar_y_guardar(
 
         # 3. Enriquecer con cover_url y preview_url
         recomendaciones = enriquecer_recomendaciones(recomendaciones)
+        vector_flat     = vector.flatten().tolist()
 
         # 4. Persistir en SQLite solo si es consulta nueva
         if not consulta_ya_existe(metadatos["track_id"]):
@@ -128,10 +130,11 @@ def _procesar_y_guardar(
                 cover_url       = metadatos.get("cover_url"),
                 es_oov          = metadatos.get("es_oov", False),
                 recomendaciones = recomendaciones,
+                vector_entrada  = vector_flat,
             )
 
     # 5. Guardar vector de entrada y actualizar estado
-    st.session_state["vector_entrada"]   = vector.flatten().tolist()
+    st.session_state["vector_entrada"]   = vector_flat
     st.session_state["recomendaciones"]  = recomendaciones
     st.session_state["limpiar_buscador"] = True
     st.rerun()
@@ -168,6 +171,7 @@ def render_buscador(
         datos = st.session_state["resultado_historial"]
         st.session_state["cancion_entrada"] = datos["cancion_entrada"]
         st.session_state["recomendaciones"] = datos["recomendaciones"]
+        st.session_state["vector_entrada"]  = datos.get("vector_entrada")
         st.session_state["resultado_historial"] = None
 
 
