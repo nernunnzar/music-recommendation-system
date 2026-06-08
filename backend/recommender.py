@@ -96,6 +96,7 @@ def recomendar(
             "preview_url": None,                                  # se enriquece en buscador.py
             "score"      : round(float(1 - distancias[idx]), 4), # similitud coseno [0, 1]
             "features"   : catalogo_features[idx].tolist(),      # vector 24d para el radar
+            "pca_idx"    : int(idx),                             # índice en catalogo_pca para el scatter
         })
 
         if len(resultados) == k:

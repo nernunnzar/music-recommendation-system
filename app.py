@@ -113,6 +113,7 @@ _DEFAULTS = {
     "recomendaciones"    : None,
     "limpiar_buscador"   : False,
     "vector_entrada"     : None,
+    "scatter_data"       : None,
 }
 for clave, valor in _DEFAULTS.items():
     if clave not in st.session_state:

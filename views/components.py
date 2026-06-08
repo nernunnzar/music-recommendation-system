@@ -278,3 +278,124 @@ def render_perfil_acustico(
         )
 
         st.plotly_chart(fig_barras, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+
+
+def render_scatter_pca(scatter_data: dict, cancion_entrada: dict) -> None:
+    """
+    Renderiza el gráfico de dispersión PCA (PC1 vs PC2).
+
+    Capas:
+      1. Nube de ~4.000 puntos del catálogo (gris claro, hover con nombre).
+      2. Canción de entrada (azul corporativo, punto grande, etiqueta fija).
+      3. Las 5 recomendaciones (colores del radar, puntos medianos, etiquetas fijas).
+
+    Parámetros
+    ----------
+    scatter_data   : dict precalculado en buscador.py con claves:
+                     muestra_xy, muestra_nombres, entrada_xy,
+                     recs_xy, recs_nombres, recs_scores.
+    cancion_entrada: dict con track_name y artist_name de la canción buscada.
+    """
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='font-size:1.1rem; font-weight:700; color:#0d1b2a; "
+        "margin-bottom:1rem;'>Mapa del espacio acústico (PCA)</p>",
+        unsafe_allow_html=True,
+    )
+
+    muestra_xy      = scatter_data["muestra_xy"]
+    muestra_nombres = scatter_data["muestra_nombres"]
+    entrada_xy      = scatter_data["entrada_xy"]
+    recs_xy         = scatter_data["recs_xy"]
+    recs_nombres    = scatter_data["recs_nombres"]
+    recs_scores     = scatter_data["recs_scores"]
+
+    fig = go.Figure()
+
+    # Capa 1: nube del catálogo
+    fig.add_trace(go.Scatter(
+        x          = [p[0] for p in muestra_xy],
+        y          = [p[1] for p in muestra_xy],
+        mode       = "markers",
+        name       = "Catálogo",
+        marker     = dict(color="rgba(180,180,180,0.22)", size=4),
+        text       = muestra_nombres,
+        hovertemplate = "%{text}<extra></extra>",
+    ))
+
+    # Capa 2: recomendaciones
+    for i, (xy, nombre, score) in enumerate(zip(recs_xy, recs_nombres, recs_scores)):
+        nombre_corto = _truncar(nombre, _MAX_CHARS_RADAR)
+        fig.add_trace(go.Scatter(
+            x          = [xy[0]],
+            y          = [xy[1]],
+            mode       = "markers+text",
+            name       = nombre_corto,
+            marker     = dict(
+                color  = _COLORES_RECS_LINE[i],
+                size   = 14,
+                line   = dict(color="white", width=1.5),
+            ),
+            text       = [nombre_corto],
+            textposition = "top center",
+            textfont   = dict(size=10, color=_COLORES_RECS_LINE[i]),
+            hovertemplate = (
+                f"<b>{nombre}</b><br>"
+                f"Similitud: {score:.5f}<extra></extra>"
+            ),
+        ))
+
+    # Capa 3: canción de entrada (encima de todo)
+    nombre_entrada       = cancion_entrada["track_name"]
+    nombre_entrada_corto = _truncar(nombre_entrada, _MAX_CHARS_RADAR)
+    fig.add_trace(go.Scatter(
+        x          = [entrada_xy[0]],
+        y          = [entrada_xy[1]],
+        mode       = "markers+text",
+        name       = nombre_entrada_corto,
+        marker     = dict(
+            color  = _COLOR_ENTRADA,
+            size   = 18,
+            symbol = "star",
+            line   = dict(color="white", width=1.5),
+        ),
+        text       = [nombre_entrada_corto],
+        textposition = "top center",
+        textfont   = dict(size=11, color=_COLOR_ENTRADA, family="Segoe UI"),
+        hovertemplate = (
+            f"<b>{nombre_entrada}</b><br>"
+            f"Canción de entrada<extra></extra>"
+        ),
+    ))
+
+    fig.update_layout(
+        xaxis = dict(
+            title    = dict(text="PC1", font=dict(size=11, color="#9ca3af")),
+            tickfont = dict(size=9, color="#9ca3af"),
+            gridcolor= "#e5e7eb",
+            zeroline = False,
+        ),
+        yaxis = dict(
+            title    = dict(text="PC2", font=dict(size=11, color="#9ca3af")),
+            tickfont = dict(size=9, color="#9ca3af"),
+            gridcolor= "#e5e7eb",
+            zeroline = False,
+        ),
+        legend = dict(
+            orientation    = "h",
+            yanchor        = "bottom",
+            y              = -0.25,
+            xanchor        = "center",
+            x              = 0.5,
+            font           = dict(size=10, color="#0d1b2a"),
+            entrywidth     = 0.33,
+            entrywidthmode = "fraction",
+        ),
+        paper_bgcolor = "rgba(0,0,0,0)",
+        plot_bgcolor  = "#f8f9fb",
+        margin        = dict(t=20, b=80, l=40, r=20),
+        height        = 480,
+        hovermode     = "closest",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})

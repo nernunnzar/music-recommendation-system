@@ -22,7 +22,7 @@ from backend.oov_processor import (
     obtener_metadatos_spotify,
     obtener_preview_url,
 )
-from views.components import render_cancion_entrada, render_tarjeta, render_perfil_acustico
+from views.components import render_cancion_entrada, render_tarjeta, render_perfil_acustico, render_scatter_pca
 
 
 # Enriquecimiento de la canción de entrada
@@ -127,6 +127,55 @@ def render_recomendaciones(recomendaciones: list[dict]) -> None:
             render_tarjeta(col, recomendaciones[i])
 
 
+# Datos del scatter PCA
+def _calcular_scatter_data(
+    vector_flat: list,
+    recomendaciones: list[dict],
+    pca,
+    catalogo_pca: np.ndarray,
+    df_metadata: pd.DataFrame,
+) -> dict:
+    """
+    Prepara el dict de datos necesarios para render_scatter_pca.
+    Se llama tanto tras una búsqueda nueva como al restaurar desde el historial,
+    por lo que es la única fuente de verdad para este cálculo.
+
+    Para localizar cada recomendación en el catálogo usa pca_idx si está
+    disponible (búsquedas nuevas) o busca por track_id como fallback
+    (registros guardados antes de añadir ese campo).
+    """
+    rng           = np.random.default_rng(seed=42)
+    idx_muestra   = rng.choice(len(catalogo_pca), size=4000, replace=False)
+    nombres_meta  = df_metadata["track_name"].values
+    artistas_meta = df_metadata["artist_name"].values
+
+    vector_pca_entrada = pca.transform(
+        np.array(vector_flat).reshape(1, -1)
+    ).flatten()
+
+    # Índice inverso track_id → posición en el catálogo (fallback para historial)
+    track_id_a_idx = {tid: i for i, tid in enumerate(df_metadata["track_id"].values)}
+
+    recs_xy, recs_nombres, recs_scores = [], [], []
+    for r in recomendaciones:
+        idx = r.get("pca_idx") if "pca_idx" in r else track_id_a_idx.get(r.get("track_id"))
+        if idx is not None:
+            recs_xy.append(catalogo_pca[idx, :2].tolist())
+            recs_nombres.append(r["track_name"])
+            recs_scores.append(r.get("score", 0))
+
+    return {
+        "muestra_xy"     : catalogo_pca[idx_muestra, :2].tolist(),
+        "muestra_nombres": [
+            f"{nombres_meta[i]} — {artistas_meta[i]}" for i in idx_muestra
+        ],
+        "entrada_xy"     : vector_pca_entrada[:2].tolist(),
+        "recs_xy"        : recs_xy,
+        "recs_nombres"   : recs_nombres,
+        "recs_scores"    : recs_scores,
+    }
+
+
 # Orquestador interno
 def _procesar_y_guardar(
     metadatos: dict,
@@ -182,6 +231,12 @@ def _procesar_y_guardar(
     # 5. Guardar vector de entrada y actualizar estado
     st.session_state["vector_entrada"]   = vector_flat
     st.session_state["recomendaciones"]  = recomendaciones
+
+    # 6. Precalcular datos del scatter PCA
+    st.session_state["scatter_data"] = _calcular_scatter_data(
+        vector_flat, recomendaciones, pca, catalogo_pca, df_metadata
+    )
+
     st.session_state["limpiar_buscador"] = True
     st.rerun()
 
@@ -219,6 +274,18 @@ def render_buscador(
         st.session_state["recomendaciones"] = datos["recomendaciones"]
         st.session_state["vector_entrada"]  = datos.get("vector_entrada")
         st.session_state["resultado_historial"] = None
+
+        # Recalcular scatter con los datos propios de esta entrada
+        if st.session_state["vector_entrada"]:
+            st.session_state["scatter_data"] = _calcular_scatter_data(
+                st.session_state["vector_entrada"],
+                st.session_state["recomendaciones"],
+                pca,
+                catalogo_pca,
+                df_metadata,
+            )
+        else:
+            st.session_state["scatter_data"] = None
 
 
     # Sección A: Catálogo local
@@ -305,3 +372,8 @@ def render_buscador(
             st.session_state["recomendaciones"],
             st.session_state["vector_entrada"],
         )
+        if st.session_state.get("scatter_data"):
+            render_scatter_pca(
+                st.session_state["scatter_data"],
+                st.session_state["cancion_entrada"],
+            )
