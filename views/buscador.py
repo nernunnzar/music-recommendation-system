@@ -3,10 +3,10 @@ views/buscador.py
 -----------------
 Vista del buscador de Audyn.
 Responsabilidades:
-  · render_buscador          → renderiza el formulario de búsqueda completo.
+  · render_buscador            → renderiza el formulario de búsqueda completo.
   · enriquecer_recomendaciones → añade cover_url y preview_url a cada resultado.
-  · render_recomendaciones   → pinta las 5 tarjetas en layout 3+2.
-  · _procesar_y_guardar      → orquesta cover, cálculo ML y session_state.
+  · render_recomendaciones     → pinta las 5 tarjetas en layout 3+2.
+  · _procesar_y_guardar        → orquesta cover, cálculo ML y session_state.
 
 La lógica de datos (ML, OOV, BD) se delega íntegramente al backend.
 """
@@ -23,6 +23,21 @@ from backend.oov_processor import (
     obtener_preview_url,
 )
 from views.components import render_cancion_entrada, render_tarjeta, render_perfil_acustico
+
+
+# Enriquecimiento de la canción de entrada
+def _enriquecer_entrada(metadatos: dict) -> dict:
+    """
+    Añade cover_url a la canción de entrada si no viene ya informado,
+    consultando Spotify por nombre + artista.
+    """
+    if not metadatos.get("cover_url"):
+        meta = obtener_metadatos_spotify(
+            f"{metadatos['track_name']} {metadatos['artist_name']}"
+        )
+        if meta:
+            metadatos["cover_url"] = meta.get("cover_url")
+    return metadatos
 
 
 # Enriquecimiento de recomendaciones
@@ -52,6 +67,44 @@ def enriquecer_recomendaciones(recomendaciones: list[dict]) -> list[dict]:
         enriquecidas.append(rec)
 
     return enriquecidas
+
+
+# Preparación de metadatos y vector según origen
+def _preparar_desde_catalogo(
+    seleccion: str,
+    mapa_trackid: dict,
+    df_metadata: pd.DataFrame,
+    catalogo_features: np.ndarray,
+) -> tuple[dict, np.ndarray]:
+    """
+    Construye los metadatos y vector de entrada para una canción del catálogo local.
+    """
+    track_id = mapa_trackid[seleccion]
+    fila     = df_metadata[df_metadata["track_id"] == track_id].iloc[0]
+
+    metadatos = {
+        "track_id"   : track_id,
+        "track_name" : fila["track_name"],
+        "artist_name": fila["artist_name"],
+        "cover_url"  : None,
+        "es_oov"     : False,
+    }
+    vector = obtener_vector_catalogo(track_id, df_metadata, catalogo_features)
+    return metadatos, vector
+
+
+def _preparar_desde_oov(texto_oov: str) -> tuple[dict | None, np.ndarray | None]:
+    """
+    Procesa una canción OOV (fuera del catálogo) vía Spotify + iTunes + DSP.
+    Devuelve (None, None) si el procesamiento falla.
+    """
+    with st.spinner("Analizando canción, esto puede tardar unos segundos..."):
+        metadatos, vector = procesar_cancion_nueva(texto_oov)
+
+    if metadatos is not None:
+        metadatos["es_oov"] = True
+
+    return metadatos, vector
 
 
 # Renderizado de recomendaciones
@@ -89,17 +142,11 @@ def _procesar_y_guardar(
       1. Obtiene cover_url de la canción de entrada si falta.
       2. Reutiliza recomendaciones cacheadas en BD o las calcula con el modelo.
       3. Enriquece las recomendaciones con cover_url y preview_url.
-      4. Persiste la consulta en SQLite si es nueva.
+      4. Persiste la consulta en SQLite si es nueva (INSERT OR IGNORE).
       5. Actualiza session_state y fuerza el rerun.
     """
     # 1. Cover de la canción de entrada
-    if not metadatos.get("cover_url"):
-        meta_spotify = obtener_metadatos_spotify(
-            f"{metadatos['track_name']} {metadatos['artist_name']}"
-        )
-        if meta_spotify:
-            metadatos["cover_url"] = meta_spotify.get("cover_url")
-
+    metadatos = _enriquecer_entrada(metadatos)
     st.session_state["cancion_entrada"] = metadatos
 
     # 2. Recomendaciones: caché BD o cálculo nuevo
@@ -121,17 +168,16 @@ def _procesar_y_guardar(
         recomendaciones = enriquecer_recomendaciones(recomendaciones)
         vector_flat     = vector.flatten().tolist()
 
-        # 4. Persistir en SQLite solo si es consulta nueva
-        if not consulta_ya_existe(metadatos["track_id"]):
-            guardar_consulta(
-                track_id        = metadatos["track_id"],
-                track_name      = metadatos["track_name"],
-                artist_name     = metadatos["artist_name"],
-                cover_url       = metadatos.get("cover_url"),
-                es_oov          = metadatos.get("es_oov", False),
-                recomendaciones = recomendaciones,
-                vector_entrada  = vector_flat,
-            )
+        # 4. Persistir en SQLite (INSERT OR IGNORE evita duplicados)
+        guardar_consulta(
+            track_id        = metadatos["track_id"],
+            track_name      = metadatos["track_name"],
+            artist_name     = metadatos["artist_name"],
+            cover_url       = metadatos.get("cover_url"),
+            es_oov          = metadatos.get("es_oov", False),
+            recomendaciones = recomendaciones,
+            vector_entrada  = vector_flat,
+        )
 
     # 5. Guardar vector de entrada y actualizar estado
     st.session_state["vector_entrada"]   = vector_flat
@@ -220,27 +266,18 @@ def render_buscador(
 
     # Lógica: búsqueda en catálogo
     if buscar and seleccion_catalogo:
-        track_id = mapa_trackid.get(seleccion_catalogo)
-        fila     = df_metadata[df_metadata["track_id"] == track_id].iloc[0]
-
-        metadatos = {
-            "track_id" : track_id,
-            "track_name" : fila["track_name"],
-            "artist_name" : fila["artist_name"],
-            "cover_url" : None,
-            "es_oov" : False,
-        }
-        vector = obtener_vector_catalogo(track_id, df_metadata, catalogo_features)
-        consulta_previa = consulta_ya_existe(track_id)
+        metadatos, vector = _preparar_desde_catalogo(
+            seleccion_catalogo, mapa_trackid, df_metadata, catalogo_features
+        )
+        consulta_previa = consulta_ya_existe(metadatos["track_id"])
 
         _procesar_y_guardar(
             metadatos, vector, consulta_previa,
             pca, catalogo_pca, df_metadata, catalogo_features,
         )
-        
+
     if buscar and texto_oov and not seleccion_catalogo:
-        with st.spinner("Analizando canción, esto puede tardar unos segundos..."):
-            metadatos, vector = procesar_cancion_nueva(texto_oov)
+        metadatos, vector = _preparar_desde_oov(texto_oov)
 
         if metadatos is None or vector is None:
             st.error(
@@ -249,7 +286,6 @@ def render_buscador(
             )
             return
 
-        metadatos["es_oov"] = True
         consulta_previa = consulta_ya_existe(metadatos["track_id"])
 
         _procesar_y_guardar(

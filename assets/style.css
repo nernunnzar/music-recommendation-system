@@ -21,6 +21,16 @@ html, body, [class*="css"] {
 }
 
 
+/* Overrides de Streamlit (ocultar chrome nativo) */
+#MainMenu, footer, header {
+    visibility: hidden;
+}
+
+[data-testid="stSidebarNav"] {
+    display: none;
+}
+
+
 /* Sidebar y navegación */
 [data-testid="stSidebar"] {
     background-color: #0d1b2a;
@@ -72,6 +82,25 @@ html, body, [class*="css"] {
     border          : none !important;
     cursor          : pointer;
     z-index         : 10;
+}
+
+
+/* Utilidades */
+.divider {
+    height          : 1px;
+    background-color: #e5e7eb;
+    margin          : 1.5rem 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding   : 3rem 1rem;
+    color     : #9ca3af;
+    font-size : 0.95rem;
+}
+.empty-state .empty-icon {
+    font-size    : 2.5rem;
+    margin-bottom: 0.75rem;
 }
 
 
@@ -269,35 +298,6 @@ html, body, [class*="css"] {
 .ver-btn:hover {
     background-color: #3b6ef8;
     color           : #ffffff !important;
-}
-
-
-/* Utilidades */
-.divider {
-    height          : 1px;
-    background-color: #e5e7eb;
-    margin          : 1.5rem 0;
-}
-
-.empty-state {
-    text-align: center;
-    padding   : 3rem 1rem;
-    color     : #9ca3af;
-    font-size : 0.95rem;
-}
-.empty-state .empty-icon {
-    font-size    : 2.5rem;
-    margin-bottom: 0.75rem;
-}
-
-
-/* Overrides de Streamlit (ocultar chrome nativo) */
-#MainMenu, footer, header {
-    visibility: hidden;
-}
-
-[data-testid="stSidebarNav"] {
-    display: none;
 }
 
 

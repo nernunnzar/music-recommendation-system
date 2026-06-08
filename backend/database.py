@@ -33,7 +33,7 @@ def inicializar_db() -> None:
             CREATE TABLE IF NOT EXISTS consultas (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 fecha           TEXT    NOT NULL,
-                track_id        TEXT    NOT NULL,
+                track_id        TEXT    NOT NULL UNIQUE,
                 track_name      TEXT    NOT NULL,
                 artist_name     TEXT    NOT NULL,
                 cover_url       TEXT,
@@ -55,6 +55,8 @@ def guardar_consulta(
 ) -> None:
     """
     Inserta una nueva consulta en la base de datos.
+    Si ya existe una fila con el mismo track_id (UNIQUE), la operación
+    se ignora silenciosamente (INSERT OR IGNORE).
 
     Parámetros
     ----------
@@ -75,7 +77,7 @@ def guardar_consulta(
     with _conectar() as conn:
         conn.execute(
             """
-            INSERT INTO consultas
+            INSERT OR IGNORE INTO consultas
                 (fecha, track_id, track_name, artist_name, cover_url, es_oov,
                  recomendaciones, vector_entrada)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
