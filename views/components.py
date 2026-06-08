@@ -86,8 +86,8 @@ _METRICAS_RADAR = {
 }
 
 # Longitud máxima de nombres en gráficos (el hover siempre muestra el completo)
-_MAX_CHARS_RADAR  = 40
-_MAX_CHARS_BARRAS = 28
+_MAX_CHARS_RADAR  = 30
+_MAX_CHARS_BARRAS = 15
 
 def _truncar(texto: str, max_chars: int) -> str:
     """Trunca el texto a max_chars caracteres añadiendo '…' si es necesario."""
