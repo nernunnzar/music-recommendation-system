@@ -240,6 +240,12 @@ def _procesar_y_guardar(
     st.session_state["limpiar_buscador"] = True
     st.rerun()
 
+# Funciones auxiliares para limpiar campos de búsqueda
+def _limpiar_oov():
+    st.session_state["texto_oov"] = ""
+
+def _limpiar_catalogo():
+    st.session_state["sel_catalogo"] = None
 
 # Vista principal
 def render_buscador(
@@ -302,6 +308,7 @@ def render_buscador(
         placeholder = "Escribe el nombre de una canción o artista...",
         label_visibility = "collapsed",
         key = "sel_catalogo",
+        on_change = _limpiar_oov,
     )
 
 
@@ -321,6 +328,7 @@ def render_buscador(
         placeholder = "Escribe el nombre de la canción y el artista...",
         label_visibility = "collapsed",
         key = "texto_oov",
+        on_change = _limpiar_catalogo,
     )
 
     buscar = st.button(
