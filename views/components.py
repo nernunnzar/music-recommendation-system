@@ -14,15 +14,29 @@ import plotly.graph_objects as go
 
 def render_cancion_entrada(metadatos: dict) -> None:
     """Renderiza la tarjeta de la canción de entrada."""
-    cover   = metadatos.get("cover_url") or "https://via.placeholder.com/80"
-    es_oov  = metadatos.get("es_oov", False)
+    cover_url = metadatos.get("cover_url")
+    es_oov    = metadatos.get("es_oov", False)
+
+    if cover_url:
+        cover_html = f"<img src='{cover_url}' alt='caratula'/>"
+    else:
+        cover_html = (
+            "<div class='no-cover no-cover--small' title='Carátula no disponible'>"
+            "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' "
+            "fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'>"
+            "<path d='M9 18V5l12-2v13'/>"
+            "<circle cx='6' cy='18' r='3'/><circle cx='18' cy='16' r='3'/>"
+            "</svg>"
+            "<span class='no-cover__label'>Sin carátula</span>"
+            "</div>"
+        )
 
     badge_text  = "Spotify / OOV" if es_oov else "Catálogo"
     badge_color = "#f97316"        if es_oov else "#3b6ef8"
 
     st.markdown(f"""
         <div class='entrada-card'>
-            <img src='{cover}' alt='caratula'/>
+            {cover_html}
             <div class='entrada-info'>
                 <div class='entrada-label'>Canción seleccionada</div>
                 <div class='entrada-title'>{metadatos['track_name']}</div>
@@ -47,8 +61,22 @@ def render_cancion_entrada(metadatos: dict) -> None:
 def render_tarjeta(col, rec: dict) -> None:
     """Renderiza una tarjeta individual de canción recomendada."""
     with col:
-        cover = rec.get("cover_url") or "https://via.placeholder.com/300"
-        preview = rec.get("preview_url")
+        cover_url = rec.get("cover_url")
+        preview   = rec.get("preview_url")
+
+        if cover_url:
+            cover_html = f"<img src='{cover_url}' alt='caratula'/>"
+        else:
+            cover_html = (
+                "<div class='no-cover no-cover--large' title='Carátula no disponible'>"
+                "<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' "
+                "fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'>"
+                "<path d='M9 18V5l12-2v13'/>"
+                "<circle cx='6' cy='18' r='3'/><circle cx='18' cy='16' r='3'/>"
+                "</svg>"
+                "<span class='no-cover__label'>Sin carátula</span>"
+                "</div>"
+            )
 
         no_preview_html = "" if preview else """
             <div style='font-size:0.8rem; color:#9ca3af;
@@ -59,7 +87,7 @@ def render_tarjeta(col, rec: dict) -> None:
 
         st.markdown(f"""
             <div class='song-card'>
-                <img src='{cover}' alt='caratula'/>
+                {cover_html}
                 <div class='song-title'>{rec['track_name']}</div>
                 <div class='song-artist'>{rec['artist_name']}</div>
                 {no_preview_html}

@@ -170,6 +170,36 @@ html, body, [class*="css"] {
     border-radius: 8px;
     flex-shrink  : 0;
 }
+
+/* Placeholder cuando no hay carátula */
+.no-cover {
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    justify-content: center;
+    gap            : 0.35rem;
+    background     : linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-radius  : 8px;
+    flex-shrink    : 0;
+    color          : #9ca3af;
+}
+.no-cover--small {
+    width : 80px;
+    height: 80px;
+}
+.no-cover--large {
+    width        : 100%;
+    aspect-ratio : 1 / 1;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+}
+.no-cover__label {
+    font-size  : 0.7rem;
+    font-weight: 500;
+    color      : #9ca3af;
+    user-select: none;
+}
+
 .entrada-card .entrada-info .entrada-label {
     font-size     : 0.75rem;
     color         : #3b6ef8;
