@@ -5,7 +5,7 @@ Vista del buscador de Audyn.
 Responsabilidades:
   · render_buscador            → renderiza el formulario de búsqueda completo.
   · enriquecer_recomendaciones → añade cover_url y preview_url a cada resultado.
-  · render_recomendaciones     → pinta las 5 tarjetas en layout 3+2.
+  · render_recomendaciones     → pinta las 5 tarjetas.
   · _procesar_y_guardar        → orquesta cover, cálculo ML y session_state.
 
 La lógica de datos (ML, OOV, BD) se delega íntegramente al backend.
@@ -167,7 +167,7 @@ def _calcular_scatter_data(
     return {
         "muestra_xy"     : catalogo_pca[idx_muestra, :2].tolist(),
         "muestra_nombres": [
-            f"{nombres_meta[i]} — {artistas_meta[i]}" for i in idx_muestra
+            f"{nombres_meta[i]} - {artistas_meta[i]}" for i in idx_muestra
         ],
         "entrada_xy"     : vector_pca_entrada[:2].tolist(),
         "recs_xy"        : recs_xy,
@@ -214,7 +214,8 @@ def _procesar_y_guardar(
             )
 
         # 3. Enriquecer con cover_url y preview_url
-        recomendaciones = enriquecer_recomendaciones(recomendaciones)
+        with st.spinner("Obteniendo carátulas y previews..."):
+            recomendaciones = enriquecer_recomendaciones(recomendaciones)
         vector_flat     = vector.flatten().tolist()
 
         # 4. Persistir en SQLite (INSERT OR IGNORE evita duplicados)

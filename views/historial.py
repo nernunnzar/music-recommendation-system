@@ -87,7 +87,7 @@ def render_historial() -> None:
         with col_cancion:
             st.markdown(f"""
                 <div class='historial-cancion'>
-                    {consulta['track_name']} — {consulta['artist_name']}
+                    {consulta['track_name']} - {consulta['artist_name']}
                 </div>
             """, unsafe_allow_html=True)
 

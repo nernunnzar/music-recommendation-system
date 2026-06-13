@@ -41,7 +41,7 @@ def recomendar(
     vector_24d: np.ndarray,
     pca,
     catalogo_pca: np.ndarray,
-    metadata,
+    df_metadata,
     catalogo_features: np.ndarray,
     track_id_entrada: str | None = None,
     k: int = 5,
@@ -55,7 +55,8 @@ def recomendar(
                  normalizadas de la canción de entrada.
     pca : transformador PCA cargado con cargar_recursos().
     catalogo_pca : catálogo completo en el espacio reducido.
-    metadata : DataFrame con los metadatos del catálogo.
+    df_metadata : DataFrame con los metadatos del catálogo
+                  (track_id, artist_name, track_name, popularity).
     catalogo_features : matriz completa de características sin reducir (174582, 24).
                         Se usa para extraer el vector de cada recomendación y
                         calcular el perfil acústico en la visualización.
@@ -82,7 +83,7 @@ def recomendar(
     # 4. Construir la lista de resultados excluyendo la canción de entrada
     resultados = []
     for idx in indices_ordenados:
-        fila = metadata.iloc[idx]
+        fila = df_metadata.iloc[idx]
 
         # Saltar si es la propia canción de entrada
         if track_id_entrada and fila["track_id"] == track_id_entrada:
@@ -92,8 +93,8 @@ def recomendar(
             "track_id"   : fila["track_id"],
             "track_name" : fila["track_name"],
             "artist_name": fila["artist_name"],
-            "cover_url"  : None,                                  # se enriquece en buscador.py
-            "preview_url": None,                                  # se enriquece en buscador.py
+            "cover_url"  : None,
+            "preview_url": None,
             "score"      : round(float(1 - distancias[idx]), 4), # similitud coseno [0, 1]
             "features"   : catalogo_features[idx].tolist(),      # vector 24d para el radar
             "pca_idx"    : int(idx),                             # índice en catalogo_pca para el scatter
@@ -107,7 +108,7 @@ def recomendar(
 
 def obtener_vector_catalogo(
     track_id: str,
-    metadata,
+    df_metadata,
     catalogo_features: np.ndarray,
 ) -> np.ndarray | None:
     """
@@ -117,14 +118,15 @@ def obtener_vector_catalogo(
     Parámetros
     ----------
     track_id : identificador de Spotify de la canción.
-    metadata : DataFrame con los metadatos del catálogo.
+    df_metadata : DataFrame con los metadatos del catálogo
+                  (track_id, artist_name, track_name, popularity).
     catalogo_features : matriz completa de características (sin reducir).
 
     Devuelve
     --------
     Array de forma (1, 24) o None si el track_id no está en el catálogo.
     """
-    coincidencias = metadata.index[metadata["track_id"] == track_id].tolist()
+    coincidencias = df_metadata.index[df_metadata["track_id"] == track_id].tolist()
 
     if not coincidencias:
         return None

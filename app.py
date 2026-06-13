@@ -1,7 +1,7 @@
 """
 app.py
 ------
-Punto de entrada de Audyn — Sistema de Recomendación Musical.
+Punto de entrada de Audyn - Sistema de Recomendación Musical.
 Arquitectura MVC adaptada a Streamlit:
   · Vista      → views/buscador.py, views/historial.py, views/components.py
   · Controlador → backend/recommender.py, backend/oov_processor.py
@@ -84,7 +84,7 @@ def _cargar_catalogo_features():
 def _cargar_opciones_buscador():
     """
     Genera y cachea la lista de opciones para el autocompletado del buscador.
-    Cada opción tiene el formato 'Nombre de canción — Artista'.
+    Cada opción tiene el formato 'Nombre de canción - Artista'.
     Devuelve también un dict de búsqueda rápida por esa cadena.
     Solo carga las 80.000 canciones más populares para mejorar el rendimiento.
     """
@@ -98,7 +98,7 @@ def _cargar_opciones_buscador():
     df["artist_name"] = df["artist_name"].astype(str)
     df = df.sort_values("popularity", ascending=False).head(80000)
 
-    df["etiqueta"] = df["track_name"] + " — " + df["artist_name"]
+    df["etiqueta"] = df["track_name"] + " - " + df["artist_name"]
     opciones       = df["etiqueta"].tolist()
     mapa_trackid   = dict(zip(df["etiqueta"], df["track_id"]))
 

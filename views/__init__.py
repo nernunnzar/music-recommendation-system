@@ -1,1 +1,1 @@
-# Paquete views — componentes de la interfaz de usuario de Audyn.
+# Paquete views - componentes de la interfaz de usuario de Audyn.

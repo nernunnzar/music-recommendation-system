@@ -383,7 +383,6 @@ def procesar_cancion_nueva(query: str) -> tuple[dict | None, np.ndarray | None]:
 
 
 # Utilidad: preview_url desde iTunes
-
 def obtener_preview_url(artist_name: str, track_name: str) -> str | None:
     """
     Consulta la API de iTunes y devuelve únicamente el preview_url de 30s.

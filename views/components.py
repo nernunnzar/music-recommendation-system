@@ -10,6 +10,48 @@ Contiene los bloques HTML/Streamlit más atómicos:
 
 import streamlit as st
 import plotly.graph_objects as go
+import joblib
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Índices del radar: se construyen dinámicamente desde config_num_cols.joblib
+# para que sean siempre coherentes con el pipeline de entrenamiento.
+#
+# Si el orden de num_cols cambiase en un reentrenamiento, este módulo
+# se adapta automáticamente sin necesidad de tocar nada.
+# ---------------------------------------------------------------------------
+def _construir_metricas_radar() -> dict[str, int]:
+    """
+    Lee config_num_cols.joblib y devuelve un dict {nombre_métrica: índice}
+    para las 6 características que se muestran en el radar, en el mismo
+    orden en que aparecen dentro del vector de 24 dimensiones.
+
+    Las 4 métricas excluidas del radar son:
+      · duration_ms      - no es una característica perceptiva directa.
+      · instrumentalness - alta incertidumbre en la estimación OOV.
+      · speechiness      - alta incertidumbre en la estimación OOV.
+      · tempo            - unidad (BPM) no normalizada al rango [0,1].
+    """
+    _RADAR_NOMBRES = ["acousticness", "danceability", "energy",
+                      "liveness", "loudness", "valence"]
+
+    models_dir = Path(__file__).resolve().parent.parent / "models"
+    num_cols: list[str] = joblib.load(models_dir / "config_num_cols.joblib")
+
+    metricas = {}
+    for nombre in _RADAR_NOMBRES:
+        if nombre not in num_cols:
+            raise ValueError(
+                f"La columna '{nombre}' no se encontró en config_num_cols.joblib. "
+                f"Columnas disponibles: {num_cols}"
+            )
+        metricas[nombre.capitalize()] = num_cols.index(nombre)
+
+    return metricas
+
+
+_METRICAS_RADAR: dict[str, int] = _construir_metricas_radar()
 
 
 def render_cancion_entrada(metadatos: dict) -> None:
@@ -98,20 +140,6 @@ def render_tarjeta(col, rec: dict) -> None:
         if preview:
             st.audio(preview, format="audio/mp4")
 
-
-# Índices de las 6 métricas seleccionadas dentro del vector de 24 dimensiones.
-# Orden de num_cols: acousticness(0), danceability(1), duration_ms(2),
-#                   energy(3), instrumentalness(4), liveness(5),
-#                   loudness(6), speechiness(7), tempo(8), valence(9)
-# Se excluyen: duration_ms, instrumentalness, speechiness y tempo.
-_METRICAS_RADAR = {
-    "Acousticness" : 0,
-    "Danceability" : 1,
-    "Energy"       : 3,
-    "Liveness"     : 5,
-    "Loudness"     : 6,
-    "Valence"      : 9,
-}
 
 # Longitud máxima de nombres en gráficos (el hover siempre muestra el completo)
 _MAX_CHARS_RADAR  = 30
